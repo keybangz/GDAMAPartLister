@@ -2,6 +2,10 @@ package main
 
 import (
 	"fmt"
+
+	// FIXME: Remove after console portion of app is done and rewrite accordingly
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/widget"
 )
 
 // MINIMUM DOOR SIZE SINGLE
@@ -26,6 +30,13 @@ func main() {
 	fmt.Println("GDAMA DOOR SIZE PART PICKER v0.1 (9/21/24) by wyattw")
 
 	DoorSize()
+
+	// FIXME: Remove after console portion of app is done
+	a := app.New()
+	w := a.NewWindow("Hello World")
+
+	w.SetContent(widget.NewLabel("Hello World!"))
+	w.ShowAndRun()
 }
 
 // Function for getting DoorSize
