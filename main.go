@@ -2,10 +2,9 @@ package main
 
 import (
 	"fmt"
-
 	// FIXME: Remove after console portion of app is done and rewrite accordingly
-	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/widget"
+	// "fyne.io/fyne/v2/app"
+	// "fyne.io/fyne/v2/widget"
 )
 
 // MINIMUM DOOR SIZE SINGLE
@@ -31,12 +30,12 @@ func main() {
 
 	DoorSize()
 
-	// FIXME: Remove after console portion of app is done
-	a := app.New()
-	w := a.NewWindow("Hello World")
+	// FIXME: Write GUI once console portion of application is done
+	// a := app.New()
+	// w := a.NewWindow("Hello World")
 
-	w.SetContent(widget.NewLabel("Hello World!"))
-	w.ShowAndRun()
+	// w.SetContent(widget.NewLabel("Hello World!"))
+	// w.ShowAndRun()
 }
 
 // Function for getting DoorSize
@@ -95,60 +94,88 @@ func MountType() {
 // 1) Do not change size depending on the door size
 // 2) Do not change amount depending on the door size
 func StaticParts() {
-	fmt.Println("Parts List:")
+	fmt.Println("PARTS LIST:")
 	fmt.Println("Track Brackets")
 	fmt.Println("(L + R) Flag Brackets")
 	fmt.Println("(L + R) Cable Drums")
 	fmt.Println("Center Bearing Plate")
 	fmt.Println("Torsion Pole")
-	fmt.Println("2x Hinges")
+	// fmt.Println("2x Hinges")
 	DynamicParts()
 }
 
 // This is where shit is gonna get messy
 // Dynamic parts like Cable size will be dependant on the global door size entered
 // Some of them are dependent on the mount type
-// I will rip my hair out doing this probably.
 func DynamicParts() {
 	// Sort part list for standard + front mount first.
 	if mountType == 1 || mountType == 2 {
 		cableSize = doorHeight * 2
+		fmt.Println("(L, R) STD Bearing Plates")
+		fmt.Println("2x STD Top Hinges")
+		fmt.Println("(L, R) STD Bottom Hangers")
 	} else if mountType == 3 {
 		cableSize = doorHeight*2 + 500
+		fmt.Println("(L, R) LHR Bearing Plates")
+		fmt.Println("2x LHR Top Hinges")
+		fmt.Println("(L, R) LHR Bottom Hangers")
 	}
 
-	// Update all dynamic parts to their minimum counter parts, and check doorsize and update
+	// Check doorsize and update accordingly
 	midHingeCount = 9    // set MidHinge count to default for lowest possibility account
 	wheelCount = 10      // Lowest possible amount of wheels is 10???
 	wheelType = false    // Short wheels by default
 	midHingeType = false // Single middle hinges by default
+	panelHeight = 600    // Standard height for a panel
 
 	var doorWidthMetre int = doorWidth / 1000
+	var doorPanelCount int = doorHeight / panelHeight // Divide door height by 600
 
-	for i := 1; i < doorWidthMetre; i++ {
-		doorWidthMetre++
+	// For every extra panel higher than 4 panels add 2 extra wheels
+	for i := 0; i < doorPanelCount; i++ {
+		if doorPanelCount > 4 {
+			wheelCount++
+			wheelCount++
+		}
+
+		// FIXME: Go keeps giving me int unused when adding a value of 4, i'm probably doing it wrong but shitty syntax equals shitty problems
+		if doorWidth >= 4500 && doorPanelCount > 4 {
+			midHingeCount++
+			midHingeCount++
+			midHingeCount++
+			midHingeCount++
+		}
+		break
+	}
+
+	for i := 4; i < doorWidthMetre; i++ {
+		midHingeCount++
 		break
 	}
 
 	// FIXME: potentionally incorrect value
-	if doorWidth > 2500 {
-		midHingeCount += doorWidthMetre
-	}
+	// if doorWidth > 2500 {
+	// 	midHingeCount += doorWidthMetre
+	// }
 
 	// If door width is higher than 4.5m then set double hinges and long wheels
 	// Here check if door size is 4.5m+ and do 4+ hinges instead of two
-	if doorWidth > 4500 {
+	if doorWidth >= 4500 {
 		wheelType = true    // Long Wheels
 		midHingeType = true // Double Hinge
 	}
 
-	// FIXME: Update count here.
 	if wheelType {
-		fmt.Println("10x Long Wheels")
+		fmt.Println(wheelCount, "Long Wheels")
 	} else {
-		fmt.Println("10x Short Wheels")
+		fmt.Println(wheelCount, "Short Wheels")
 	}
 
-	fmt.Println("2x Cables @ size:", cableSize)
-	fmt.Println(midHingeCount, "Middle Hinges") // Need to be dynamic type, 2.5m x 3.5m = 9 by default? 4.5m+ door becomes double hinges
+	if midHingeType {
+		fmt.Println(midHingeCount, "Double Middle Hinges")
+	} else {
+		fmt.Println(midHingeCount, "Single Middle Hinges")
+	}
+
+	fmt.Println("2x Cables @ size (mm):", cableSize)
 }
