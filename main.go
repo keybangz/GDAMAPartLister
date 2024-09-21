@@ -63,27 +63,37 @@ func DoorSize() {
 }
 
 func MountType() {
-	fmt.Println("Select Door Mount Type: ")
-	fmt.Println("1. Standard")
-	fmt.Println("2. Front-Mount")
-	fmt.Println("3. Rear-Mount Low Headroom")
-
 	var choice int
+	badinput := false
 
-	fmt.Scanf("%d", &choice)
+	for menu := true; menu; {
+		if !badinput {
+			fmt.Println("Select Door Mount Type: ")
+			fmt.Println("1. Standard")
+			fmt.Println("2. Front-Mount")
+			fmt.Println("3. Rear-Mount Low Headroom")
+			fmt.Scanf("%d", &choice)
+		} else {
+			fmt.Println("Invalid selection!")
+			fmt.Scanf("%d", &choice)
+		}
 
-	switch choice {
-	case 1:
-		fmt.Println("Mount Type Selected: Standard")
-		mountType = 1
-	case 2:
-		fmt.Println("Mount Type Selected: Front-Mount")
-		mountType = 2
-	case 3:
-		fmt.Println("Mount Type Selected: Rear-Mount Low Headroom")
-		mountType = 3
-	default:
-		fmt.Println("Invalid selection!")
+		switch choice {
+		case 1:
+			fmt.Println("Mount Type Selected: Standard")
+			mountType = 1
+			menu = false
+		case 2:
+			fmt.Println("Mount Type Selected: Front-Mount")
+			mountType = 2
+			menu = false
+		case 3:
+			fmt.Println("Mount Type Selected: Rear-Mount Low Headroom")
+			mountType = 3
+			menu = false
+		default:
+			badinput = true
+		}
 	}
 
 	StaticParts()
@@ -130,27 +140,32 @@ func DynamicParts() {
 
 	var doorWidthMetre int = doorWidth / 1000
 	var doorPanelCount int = doorHeight / panelHeight // Divide door height by 600
+	fmt.Println("doorWidthMetre: ", doorWidthMetre)
 
 	// For every extra panel higher than 4 panels add 2 extra wheels
 	for i := 0; i < doorPanelCount; i++ {
-		if doorPanelCount > 4 {
+		if i > 4 { // if door panel count is higher than 4
 			wheelCount++
 			wheelCount++
 		}
 
 		// FIXME: Go keeps giving me int unused when adding a value of 4, i'm probably doing it wrong but shitty syntax equals shitty problems
-		if doorWidth >= 4500 && doorPanelCount > 4 {
+		if doorWidth >= 4500 && i > 4 { // if door panel count is higher than 4 and also checks if door is over 4.5m wide
 			midHingeCount++
 			midHingeCount++
 			midHingeCount++
 			midHingeCount++
 		}
-		break
+		continue
 	}
 
-	for i := 4; i < doorWidthMetre; i++ {
+	// this brokie, for every meter of width above 3.6m we need to add an extra middle hinge
+	// should probably use a float here, or across the board and convert from the users input
+	// FIXME: Get width restraints at work on monday
+	for i := 4; i <= doorWidthMetre; i++ {
+		fmt.Println("doorWidthMetre added: ", i)
 		midHingeCount++
-		break
+		continue
 	}
 
 	// FIXME: potentionally incorrect value
