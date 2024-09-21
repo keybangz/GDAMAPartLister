@@ -15,6 +15,5 @@ Program written in Go to print out a partlist for sectional doors based on size 
 ![image](https://github.com/user-attachments/assets/0d544df1-2219-4022-9300-3d93c3906ccb)
 
 ## TODO
-- Fix middle hinge count based on door width
-- Add panel height counting for door height (door height divided by ????)
+- Test if wheel count and middle hinge count is accurate according to calculations
 - Add GUI for easier use
