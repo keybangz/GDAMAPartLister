@@ -2,13 +2,22 @@ package main
 
 import (
 	"fmt"
+	"image/color"
+
 	// FIXME: Remove after console portion of app is done and rewrite accordingly
-	// "fyne.io/fyne/v2/app"
-	// "fyne.io/fyne/v2/widget"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/layout"
 )
 
 // MINIMUM DOOR SIZE SINGLE
 // 2400mm x 2400mm - 2400mm x 3600mm (could be wrong whiteboard says 3500mm)
+
+// These probably should be organized into some sort of door struct which the program can reference later
+// Do we need to save some sort of door id for back reference in case they want a spreadsheet created?
+// Am I overthinking it right now? probably.
 
 // Globals
 var doorWidth int  // Door Width in mm
@@ -25,19 +34,39 @@ var midHingeCount int // Default to 9, divide door width by 1m and add extras wh
 var panelHeight int   // Panel size of door should be 600mm high each
 
 func main() {
+	// TODO: Take console application process and make useful for people who don't like black box consoles, aka everyone but me.
 	// Grab door size -> Mount Type -> Print static parts, then print dynamic parts.
-	fmt.Println("GDAMA DOOR SIZE PART PICKER v0.1 (9/21/24) by wyattw")
+	// fmt.Println("GDAMA DOOR SIZE PART PICKER v0.1 (9/21/24) by wyattw")
+	// DoorSize()
 
-	DoorSize()
+	prog := app.New()
+	mainWindow := prog.NewWindow("GDAMA Part Picker v0.1")
 
-	// FIXME: Write GUI once console portion of application is done
-	// a := app.New()
-	// w := a.NewWindow("Hello World")
+	// Text needs a color input from a RGBA value passed through on creation... why?
+	green := color.NRGBA{R: 0, G: 180, B: 0, A: 255}
+	text1 := canvas.NewText("Hello", green)
+	text2 := canvas.NewText("There", green)
 
-	// w.SetContent(widget.NewLabel("Hello World!"))
-	// w.ShowAndRun()
+	text2.Move(fyne.NewPos(0, 20)) // This is to position on the layout, the app handles responsive change of the window size.
+
+	// Set grid layout so Tabbed sections will be on the left
+	// Middle content aka grid 1 will show tab contents
+	// Right content aka grid 2 will show tab results (This case will be sectional door part list output.)
+	content := container.New(layout.NewGridLayout(2), text1, text2)
+
+	mainWindow.Resize(fyne.NewSize(800, 500)) // Resize window to a sane start size.
+	mainWindow.SetContent(content)            // Set the content passed through
+	mainWindow.ShowAndRun()                   // Profit
+	// prog.Run()
+	tidy()
 }
 
+// End GUI Loop
+func tidy() {
+	fmt.Println("Debug Exit")
+}
+
+// CONSOLE PROGRAM BELOW....
 // Function for getting DoorSize
 // Here we will call appriopriate part calculation sizes later.
 func DoorSize() {
