@@ -14,6 +14,7 @@ import (
 
 // MINIMUM DOOR SIZE SINGLE
 // 2400mm x 2400mm - 2400mm x 3600mm (could be wrong whiteboard says 3500mm)
+// Panel height: 550 should be average, do we bother taking the remainder? probably not.
 
 // These probably should be organized into some sort of door struct which the program can reference later
 // Do we need to save some sort of door id for back reference in case they want a spreadsheet created?
