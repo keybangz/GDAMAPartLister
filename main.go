@@ -2,14 +2,14 @@ package main
 
 import (
 	"fmt"
-	"image/color"
+	"log"
 
 	// FIXME: Remove after console portion of app is done and rewrite accordingly
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/widget"
 )
 
 // MINIMUM DOOR SIZE SINGLE
@@ -41,22 +41,57 @@ func main() {
 	// DoorSize()
 
 	prog := app.New()
-	mainWindow := prog.NewWindow("GDAMA Part Picker v0.1")
+	mainWindow := prog.NewWindow("GDAMA Toolbox v0.1")
 
-	// Text needs a color input from a RGBA value passed through on creation... why?
-	green := color.NRGBA{R: 0, G: 180, B: 0, A: 255}
-	text1 := canvas.NewText("Hello", green)
-	text2 := canvas.NewText("There", green)
+	eDoorHeight := widget.NewEntry()
+	eDoorWidth := widget.NewEntry()
+	ePanelHeight := widget.NewEntry()
+	ePanelHeight.SetText("550") // Set default panel height to 550 for averaging.
+	eDoorType := widget.NewRadioGroup([]string{"Standard", "Front-mount", "Low Head-room Rear Mount"}, func(value string) {
+		if value == "Standard" {
+			mountType = 1
+		} else if value == "Front-mount" {
+			mountType = 2
+		} else if value == "Low Head-room Rear Mount" {
+			mountType = 3
+		}
 
-	text2.Move(fyne.NewPos(0, 20)) // This is to position on the layout, the app handles responsive change of the window size.
+		log.Println("eDoorType set to", value, "mountType: ", mountType)
+	})
+
+	doorPartListerForm := &widget.Form{
+		Items: []*widget.FormItem{
+			{Text: "Door Height", Widget: eDoorHeight},
+			{Text: "Door Width", Widget: eDoorWidth},
+			{Text: "Panel Height", Widget: ePanelHeight},
+			{Text: "Door Type", Widget: eDoorType},
+		},
+		OnSubmit: func() {
+			log.Println("Form submitted: ", "Height: ", eDoorHeight.Text, "Width: ", eDoorWidth.Text)
+		},
+	}
+
+	partListContent := container.NewVBox(doorPartListerForm)
+
+	partLister := container.New(layout.NewGridLayout(1), partListContent)
+
+	tabs := container.NewAppTabs(
+		container.NewTabItem("Part Lister", partLister),
+		container.NewTabItem("Placeholder", widget.NewLabel("Placeholder")),
+		container.NewTabItem("Placeholder", widget.NewLabel("Placeholder")),
+	)
+
+	tabs.SetTabLocation(container.TabLocationLeading)
+
+	// text2.Move(fyne.NewPos(0, 20)) // This is to position on the layout, the app handles responsive change of the window size.
 
 	// Set grid layout so Tabbed sections will be on the left
 	// Middle content aka grid 1 will show tab contents
 	// Right content aka grid 2 will show tab results (This case will be sectional door part list output.)
-	content := container.New(layout.NewGridLayout(2), text1, text2)
+	appContent := tabs
 
 	mainWindow.Resize(fyne.NewSize(800, 500)) // Resize window to a sane start size.
-	mainWindow.SetContent(content)            // Set the content passed through
+	mainWindow.SetContent(appContent)         // Set the content passed through
 	mainWindow.ShowAndRun()                   // Profit
 	// prog.Run()
 	tidy()
