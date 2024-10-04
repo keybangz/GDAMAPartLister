@@ -47,6 +47,8 @@ func main() {
 	eDoorWidth := widget.NewEntry()
 	ePanelHeight := widget.NewEntry()
 	ePanelHeight.SetText("550") // Set default panel height to 550 for averaging.
+	eOutput := widget.NewLabel("")
+
 	eDoorType := widget.NewRadioGroup([]string{"Standard", "Front-mount", "Low Head-room Rear Mount"}, func(value string) {
 		if value == "Standard" {
 			mountType = 1
@@ -67,13 +69,18 @@ func main() {
 			{Text: "Door Type", Widget: eDoorType},
 		},
 		OnSubmit: func() {
+			mountSpecs := fmt.Sprintf("Mount Specifications:\nDoor Height: %s Door Width: %s Panel Height: %s Mount Type: %s", eDoorHeight.Text, eDoorWidth.Text, ePanelHeight.Text, eDoorType.Selected)
+			// partList := fmt.Sprintf("Part List: %s", parts) REF: See DynamicParts()
+			eOutput.SetText(mountSpecs)
+
 			log.Println("Form submitted: ", "Height: ", eDoorHeight.Text, "Width: ", eDoorWidth.Text)
 		},
 	}
 
 	partListContent := container.NewVBox(doorPartListerForm)
+	partListOutputContent := container.NewVBox(eOutput)
 
-	partLister := container.New(layout.NewGridLayout(1), partListContent)
+	partLister := container.New(layout.NewGridLayout(1), partListContent, partListOutputContent)
 
 	tabs := container.NewAppTabs(
 		container.NewTabItem("Part Lister", partLister),
