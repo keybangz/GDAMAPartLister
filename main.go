@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strconv"
 
 	// FIXME: Remove after console portion of app is done and rewrite accordingly
 	"fyne.io/fyne/v2"
@@ -70,10 +71,11 @@ func main() {
 		},
 		OnSubmit: func() {
 			mountSpecs := fmt.Sprintf("Mount Specifications:\nDoor Height: %s Door Width: %s Panel Height: %s Mount Type: %s", eDoorHeight.Text, eDoorWidth.Text, ePanelHeight.Text, eDoorType.Selected)
-			// partList := fmt.Sprintf("Part List: %s", parts) REF: See DynamicParts()
-			eOutput.SetText(mountSpecs)
+			staticParts := StaticParts()
+			dynamicParts := DynamicParts(eDoorWidth.Text, eDoorHeight.Text, ePanelHeight.Text)
 
-			log.Println("Form submitted: ", "Height: ", eDoorHeight.Text, "Width: ", eDoorWidth.Text)
+			output := fmt.Sprintf("%s\nPart List: \n%s\n%s", mountSpecs, staticParts, dynamicParts)
+			eOutput.SetText(output)
 		},
 	}
 
@@ -175,44 +177,58 @@ func MountType() {
 // Do certain part calculations depending on mount type (cables, etc)
 // 1) Do not change size depending on the door size
 // 2) Do not change amount depending on the door size
-func StaticParts() {
-	fmt.Println("PARTS LIST:")
-	fmt.Println("Track Brackets")
-	fmt.Println("(L + R) Flag Brackets")
-	fmt.Println("(L + R) Cable Drums")
-	fmt.Println("Center Bearing Plate")
-	fmt.Println("Torsion Pole")
+func StaticParts() (output string) {
+	// fmt.Println("PARTS LIST:")
+
+	output = fmt.Sprintf("Track Brackets\n(L + R) Flag Brackets\n(L + R) Cable Drums\nCenter Bearing Plate\nTorsion Pole")
+	// fmt.Println("Track Brackets")
+	// fmt.Println("(L + R) Flag Brackets")
+	// fmt.Println("(L + R) Cable Drums")
+	// fmt.Println("Center Bearing Plate")
+	// fmt.Println("Torsion Pole")
 	// fmt.Println("2x Hinges")
-	DynamicParts()
+
+	return output
 }
 
 // This is where shit is gonna get messy
 // Dynamic parts like Cable size will be dependant on the global door size entered
 // Some of them are dependent on the mount type
-func DynamicParts() {
+func DynamicParts(width string, height string, panelHeight string) (output string) {
+	iHeight, err := strconv.Atoi(height)
+	iWidth, err := strconv.Atoi(width)
+	iPanelHeight, err := strconv.Atoi(panelHeight)
+	if err != nil {
+		panic(err)
+	}
+
 	// Sort part list for standard + front mount first.
 	if mountType == 1 || mountType == 2 {
-		cableSize = doorHeight * 2
-		fmt.Println("(L, R) STD Bearing Plates")
-		fmt.Println("2x STD Top Hinges")
-		fmt.Println("(L, R) STD Bottom Hangers")
+		cableSize = iHeight * 2
+		output = fmt.Sprintf("(L + R) STD Bearing Plates\n2x STD Top Hinges\n(L + R) STD Bottom Hanger\n")
+		// fmt.Println("(L, R) STD Bearing Plates")
+		// fmt.Println("2x STD Top Hinges")
+		// fmt.Println("(L, R) STD Bottom Hangers")
 	} else if mountType == 3 {
-		cableSize = doorHeight*2 + 500
-		fmt.Println("(L, R) LHR Bearing Plates")
-		fmt.Println("2x LHR Top Hinges")
-		fmt.Println("(L, R) LHR Bottom Hangers")
+		cableSize = iHeight*2 + 500
+		output = fmt.Sprintf("(L + R) LHR Bearing Plates\n2x LHR Top Hinges\n(L + R) LHR Bottom Hangers\n")
+		// fmt.Println("(L, R) LHR Bearing Plates")
+		// fmt.Println("2x LHR Top Hinges")
+		// fmt.Println("(L, R) LHR Bottom Hangers")
 	}
+
+	// use temporary output to store current dynamic list
+	var tempOut = output
 
 	// Check doorsize and update accordingly
 	midHingeCount = 9    // set MidHinge count to default for lowest possibility account
 	wheelCount = 10      // Lowest possible amount of wheels is 10???
 	wheelType = false    // Short wheels by default
 	midHingeType = false // Single middle hinges by default
-	panelHeight = 600    // Standard height for a panel
+	// iPanelHeight = 600   // Standard height for a panel
 
-	var doorWidthMetre int = doorWidth / 1000
-	var doorPanelCount int = doorHeight / panelHeight // Divide door height by 600
-	fmt.Println("doorWidthMetre: ", doorWidthMetre)
+	var doorWidthMetre int = iWidth / 1000
+	var doorPanelCount int = iHeight / iPanelHeight // Divide door height by 600
 
 	// For every extra panel higher than 4 panels add 2 extra wheels
 	for i := 0; i < doorPanelCount; i++ {
@@ -235,7 +251,7 @@ func DynamicParts() {
 	// should probably use a float here, or across the board and convert from the users input
 	// FIXME: Get width restraints at work on monday
 	for i := 4; i <= doorWidthMetre; i++ {
-		fmt.Println("doorWidthMetre added: ", i)
+		// fmt.Println("doorWidthMetre added: ", i)
 		midHingeCount++
 		continue
 	}
@@ -253,16 +269,27 @@ func DynamicParts() {
 	}
 
 	if wheelType {
-		fmt.Println(wheelCount, "Long Wheels")
+		//fmt.Println(wheelCount, "Long Wheels")
+		output = fmt.Sprintf("%s %dx Long Wheels\n", tempOut, wheelCount)
 	} else {
-		fmt.Println(wheelCount, "Short Wheels")
+		// fmt.Println(wheelCount, "Short Wheels")
+		output = fmt.Sprintf("%s %dx Short Wheels\n", tempOut, wheelCount)
 	}
+
+	tempOut = output // Update temporary buffer
 
 	if midHingeType {
-		fmt.Println(midHingeCount, "Double Middle Hinges")
+		// fmt.Println(midHingeCount, "Double Middle Hinges")
+		output = fmt.Sprintf("%s %dx Double Middle Hinges\n", tempOut, midHingeCount)
 	} else {
-		fmt.Println(midHingeCount, "Single Middle Hinges")
+		// fmt.Println(midHingeCount, "Single Middle Hinges")
+		output = fmt.Sprintf("%s %dx Single Middle Hinges\n", tempOut, midHingeCount)
 	}
 
-	fmt.Println("2x Cables @ size (mm):", cableSize)
+	tempOut = output
+
+	//fmt.Println("2x Cables @ size (mm):", cableSize)
+	output = fmt.Sprintf("%s 2x Cables @ size (mm): %d\n", tempOut, cableSize)
+
+	return output
 }
