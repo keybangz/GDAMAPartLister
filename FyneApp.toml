@@ -1,0 +1,14 @@
+Website = "https://github.com/keybangz"
+
+[Details]
+Icon = "Icon.png"
+Name = "GDAMA Toolbox"
+ID = "com.gdamatoolbox.app"
+Version = 0.1.0
+Build = 1
+
+[LinuxAndBSD]
+GenericName = "GDAMA Toolbox"
+Categories = ["Office"]
+Comment = "Garage Doors & More Office Utility Toolkit"
+Keywords = ["toolbox", "gdama"]
