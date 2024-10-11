@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 
 	// FIXME: Remove after console portion of app is done and rewrite accordingly
@@ -226,10 +227,12 @@ func DynamicParts(width string, height string, panelHeight string) (output strin
 	var tempOut = output
 
 	// Check doorsize and update accordingly
-	midHingeCount = 9    // set MidHinge count to default for lowest possibility account
+	midHingeCount = 9 // set MidHinge count to default for lowest possibility account
+	midHingeAdd := 0
 	wheelCount = 10      // Lowest possible amount of wheels is 10???
 	wheelType = false    // Short wheels by default
 	midHingeType = false // Single middle hinges by default
+	loopCounter := 0.0
 	// iPanelHeight = 600   // Standard height for a panel
 
 	// doorCheck := false
@@ -240,41 +243,69 @@ func DynamicParts(width string, height string, panelHeight string) (output strin
 	fmt.Println("doorWidthMetre: ", doorWidthMetre)
 
 	// For every extra panel higher than 4 panels add 2 extra wheels
+	// Four panels is anything over 3.5
+	//
+	// doorHeight divided by 600 default panel height is going to always return a floating point number
+	// Algorithmic will assume that anything over .5 of a divided doorHeight via 600 will mean it is the next rounded number up.
+
+	tempPanelCount := 0
+	tempPanelCheck := 0
 	for i := 0.0; i < doorPanelCount; i++ {
-		if i >= 4.0 { // if door panel count is higher than 4
-			wheelCount += 2
-			midHingeCount += 2 // fix
-			fmt.Println("wheelCount added 2 && midHingeCount added 2")
+		tempPanelCount = int(i + 1)
+
+		// Four panel door will add three middle hinges per extra metre from 2000
+		// Five panel = 4+ per metre
+		// Six panel = 5+ per metre
+
+		// fmt.Println("loop WidthCounter")
+		if tempPanelCount == 4 {
+			midHingeAdd = 3
+		} else if tempPanelCount == 5 {
+			midHingeAdd = 4
+		} else if tempPanelCount == 6 {
+			midHingeAdd = 5
+		} else if tempPanelCount == 7 {
+			midHingeAdd = 6
+		}
+	}
+
+	for i := 0.0; i < fWidth; i++ {
+		loopCounter++
+
+		if loopCounter < 3000.0 || tempPanelCount == 4 && loopCounter == 3000.0 {
+			continue
 		}
 
-		if fWidth >= 4500.0 && i >= 4.0 { // if door panel count is higher than 4 and also checks if door is over 4.5m wide
-			midHingeCount += 4
-			fmt.Println("midHingeCount added 4")
+		if math.Mod(loopCounter, 1000.0) == 0 {
+			fmt.Println("Thousandth found:", loopCounter)
+
+			if tempPanelCheck == 0 {
+				if tempPanelCount == 5 {
+					midHingeCount = 8 // add 4 to 8 to get right number for 5 panel doors
+				} else if tempPanelCount == 6 {
+					midHingeCount = 7
+				} else if tempPanelCount == 7 {
+					midHingeCount = 6
+				}
+				tempPanelCheck++
+			}
+
+			midHingeCount += midHingeAdd
 		}
 	}
 
-	// this brokie, for every meter of width above 3.6m we need to add an extra middle hinge
-	// should probably use a float here, or across the board and convert from the users input
-	// FIXME: Get width restraints at work on monday
-
-	for i := 3.6; i <= doorWidthMetre; i++ {
-		if i <= 4.49 {
-			midHingeCount += 1
-		} else {
-			midHingeCount += 2
-		}
-	}
+	fmt.Println("Middle Hinges:", midHingeCount)
+	fmt.Println("Middle Hinge Add:", midHingeAdd)
+	fmt.Println("Panel Count:", tempPanelCount)
 
 	// If door width is higher than 4.5m then set double hinges and long wheels
 	// Here check if door size is 4.5m+ and do 4+ hinges instead of two
 	if fWidth >= 4500.0 {
 		wheelType = true    // Long Wheels
 		midHingeType = true // Double Hinge
-		// midHingeCount += 4
 	} else if fWidth < 4500.0 {
 		wheelType = false // we dont need to do this but fuck it do it anyways
 		midHingeType = false
-		// midHingeCount += 2
 	}
 
 	if wheelType {
@@ -288,10 +319,8 @@ func DynamicParts(width string, height string, panelHeight string) (output strin
 	tempOut = output // Update temporary buffer
 
 	if midHingeType {
-		// fmt.Println(midHingeCount, "Double Middle Hinges")
 		output = fmt.Sprintf("%s%dx Double Middle Hinges\n", tempOut, midHingeCount)
 	} else {
-		// fmt.Println(midHingeCount, "Single Middle Hinges")
 		output = fmt.Sprintf("%s%dx Single Middle Hinges\n", tempOut, midHingeCount)
 	}
 
