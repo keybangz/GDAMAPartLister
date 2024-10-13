@@ -22,9 +22,7 @@ import (
 // Am I overthinking it right now? probably.
 
 // Globals
-var doorWidth int  // Door Width in mm
-var doorHeight int // Door Height in mm
-var mountType int  // Mount Type Choice in int
+var mountType int // Mount Type Choice in int
 
 // For reference, every panel of door height should be 600mm high each, so 600 x 4 =
 // Parts
@@ -33,13 +31,9 @@ var wheelCount int    // +1 Panel = 2+ Wheels
 var wheelType bool    // If false, short wheels, if true, long wheels???? profit
 var midHingeType bool // If false single hinge, if true double hinge
 var midHingeCount int // Default to 9, divide door width by 1m and add extras when needed
-var panelHeight int   // Panel size of door should be 600mm high each
 
 func main() {
 	// Grab door size -> Mount Type -> Print static parts, then print dynamic parts.
-	// fmt.Println("GDAMA DOOR SIZE PART PICKER v0.1 (9/21/24) by wyattw")
-	// DoorSize()
-
 	prog := app.New()
 	mainWindow := prog.NewWindow("GDAMA Toolbox v0.1")
 
@@ -69,7 +63,8 @@ func main() {
 		OnSubmit: func() {
 			// I imagine there are a few escape causes when tieing strings together like this
 			// Not that it should it matter as the conversions are error checked
-			mountSpecs := fmt.Sprintf("Mount Specifications:\nDoor Height: %s Door Width: %s Panel Height: %s Mount Type: %s\n", eDoorHeight.Text, eDoorWidth.Text, ePanelHeight.Text, eDoorType.Selected)
+			panels := GetPanelCount(eDoorHeight.Text, ePanelHeight.Text)
+			mountSpecs := fmt.Sprintf("Mount Specifications:\nDoor Height: %s Door Width: %s Panel Height: %s\nMount Type: %s\n%s\n", eDoorHeight.Text, eDoorWidth.Text, ePanelHeight.Text, eDoorType.Selected, panels)
 			staticParts := StaticParts()
 			dynamicParts := DynamicParts(eDoorWidth.Text, eDoorHeight.Text, ePanelHeight.Text)
 
@@ -107,85 +102,36 @@ func main() {
 
 // End GUI Loop
 func tidy() {
-	fmt.Println("Debug Exit")
+	fmt.Println("DEBUG | Program Exited")
 }
 
-// CONSOLE PROGRAM BELOW....
-// Function for getting DoorSize
-// Here we will call appriopriate part calculation sizes later.
-// func DoorSize() {
-// 	fmt.Println("Enter height(mm) of door: ")
+func GetPanelCount(doorHeight string, panelHeight string) (output string) {
+	fHeight, err := strconv.ParseFloat(doorHeight, 64)
+	fPanelHeight, err := strconv.ParseFloat(panelHeight, 64)
 
-// 	var height int
-// 	var width int
+	// cheeky error handling by crashing the program lol
+	if err != nil {
+		panic(err)
+	}
 
-// 	fmt.Scanf("%d", &height)
+	var doorPanelCount float64 = fHeight / fPanelHeight // Divide door height by 600
+	var realPanelCount int                              // Real Panel count showed in program and counting logically
 
-// 	fmt.Print("Height of door: ", height, "(mm)\n")
-// 	fmt.Println("Enter width(mm) of door.")
+	for i := 0.0; i < doorPanelCount; i++ {
+		realPanelCount = int(i + 1)
+	}
 
-// 	fmt.Scanf("%d", &width)
-// 	fmt.Print("Width of door: ", width, "(mm)\n")
+	output = fmt.Sprintf("Panels: %d", realPanelCount)
 
-// 	// FIXME: silly way to do it?????
-// 	doorWidth = width
-// 	doorHeight = height
-
-// 	fmt.Println("Door size: ", doorWidth, " x ", doorHeight)
-// 	MountType()
-// }
-
-// func MountType() {
-// 	var choice int
-// 	badinput := false
-
-// 	for menu := true; menu; {
-// 		if !badinput {
-// 			fmt.Println("Select Door Mount Type: ")
-// 			fmt.Println("1. Standard")
-// 			fmt.Println("2. Front-Mount")
-// 			fmt.Println("3. Rear-Mount Low Headroom")
-// 			fmt.Scanf("%d", &choice)
-// 		} else {
-// 			fmt.Println("Invalid selection!")
-// 			fmt.Scanf("%d", &choice)
-// 		}
-
-// 		switch choice {
-// 		case 1:
-// 			fmt.Println("Mount Type Selected: Standard")
-// 			mountType = 1
-// 			menu = false
-// 		case 2:
-// 			fmt.Println("Mount Type Selected: Front-Mount")
-// 			mountType = 2
-// 			menu = false
-// 		case 3:
-// 			fmt.Println("Mount Type Selected: Rear-Mount Low Headroom")
-// 			mountType = 3
-// 			menu = false
-// 		default:
-// 			badinput = true
-// 		}
-// 	}
-
-// 	StaticParts()
-// }
+	return output
+}
 
 // Static Parts will be listed first as parts that either
 // Do certain part calculations depending on mount type (cables, etc)
 // 1) Do not change size depending on the door size
 // 2) Do not change amount depending on the door size
 func StaticParts() (output string) {
-	// fmt.Println("PARTS LIST:")
-
 	output = fmt.Sprintf("Track Brackets\n(L + R) Flag Brackets\n(L + R) Cable Drums\nCenter Bearing Plate\nTorsion Pole")
-	// fmt.Println("Track Brackets")
-	// fmt.Println("(L + R) Flag Brackets")
-	// fmt.Println("(L + R) Cable Drums")
-	// fmt.Println("Center Bearing Plate")
-	// fmt.Println("Torsion Pole")
-	// fmt.Println("2x Hinges")
 
 	return output
 }
@@ -194,10 +140,6 @@ func StaticParts() (output string) {
 // Dynamic parts like Cable size will be dependant on the global door size entered
 // Some of them are dependent on the mount type
 func DynamicParts(width string, height string, panelHeight string) (output string) {
-	// iHeight, err := strconv.Atoi(height)
-	// iWidth, err := strconv.Atoi(width)
-	// iPanelHeight, err := strconv.Atoi(panelHeight)
-
 	// Convert to float for extra middle hinge count.
 	fHeight, err := strconv.ParseFloat(height, 64)
 	fWidth, err := strconv.ParseFloat(width, 64)
@@ -212,15 +154,9 @@ func DynamicParts(width string, height string, panelHeight string) (output strin
 	if mountType == 1 || mountType == 2 {
 		cableSize = fHeight * 2.0
 		output = fmt.Sprintf("(L + R) STD Bearing Plates\n2x STD Top Hinges\n(L + R) STD Bottom Hanger\n")
-		// fmt.Println("(L, R) STD Bearing Plates")
-		// fmt.Println("2x STD Top Hinges")
-		// fmt.Println("(L, R) STD Bottom Hangers")
 	} else if mountType == 3 {
 		cableSize = fHeight*2 + 500
 		output = fmt.Sprintf("(L + R) LHR Bearing Plates\n2x LHR Top Hinges\n(L + R) LHR Bottom Hangers\n")
-		// fmt.Println("(L, R) LHR Bearing Plates")
-		// fmt.Println("2x LHR Top Hinges")
-		// fmt.Println("(L, R) LHR Bottom Hangers")
 	}
 
 	// use temporary output to store current dynamic list
@@ -233,9 +169,6 @@ func DynamicParts(width string, height string, panelHeight string) (output strin
 	wheelType = false    // Short wheels by default
 	midHingeType = false // Single middle hinges by default
 	loopCounter := 0.0
-	// iPanelHeight = 600   // Standard height for a panel
-
-	// doorCheck := false
 
 	var doorWidthMetre float64 = fWidth / 1000.0
 	var doorPanelCount float64 = fHeight / fPanelHeight // Divide door height by 600
@@ -253,11 +186,14 @@ func DynamicParts(width string, height string, panelHeight string) (output strin
 	for i := 0.0; i < doorPanelCount; i++ {
 		tempPanelCount = int(i + 1)
 
+		if tempPanelCount > 4 {
+			wheelCount += 2
+		}
+
 		// Four panel door will add three middle hinges per extra metre from 2000
 		// Five panel = 4+ per metre
 		// Six panel = 5+ per metre
 
-		// fmt.Println("loop WidthCounter")
 		if tempPanelCount == 4 {
 			midHingeAdd = 3
 		} else if tempPanelCount == 5 {
@@ -280,21 +216,24 @@ func DynamicParts(width string, height string, panelHeight string) (output strin
 			fmt.Println("Thousandth found:", loopCounter)
 
 			if tempPanelCheck == 0 {
+				// THIS COULD BE WRONG??? BUT IT SPITS OUT DIVIDED NUMBERS THAT WORK
 				if tempPanelCount == 5 {
 					midHingeCount = 8 // add 4 to 8 to get right number for 5 panel doors
 				} else if tempPanelCount == 6 {
-					midHingeCount = 7
+					midHingeCount = 10
 				} else if tempPanelCount == 7 {
-					midHingeCount = 6
+					midHingeCount = 12
+				} else if tempPanelCount == 8 {
+					midHingeCount = 14
 				}
 				tempPanelCheck++
 			}
 
+			fmt.Println("Middle Hinges:", midHingeCount)
 			midHingeCount += midHingeAdd
 		}
 	}
 
-	fmt.Println("Middle Hinges:", midHingeCount)
 	fmt.Println("Middle Hinge Add:", midHingeAdd)
 	fmt.Println("Panel Count:", tempPanelCount)
 
@@ -309,10 +248,8 @@ func DynamicParts(width string, height string, panelHeight string) (output strin
 	}
 
 	if wheelType {
-		//fmt.Println(wheelCount, "Long Wheels")
 		output = fmt.Sprintf("%s%dx Long Wheels\n", tempOut, wheelCount)
 	} else {
-		// fmt.Println(wheelCount, "Short Wheels")x``
 		output = fmt.Sprintf("%s%dx Short Wheels\n", tempOut, wheelCount)
 	}
 
@@ -324,9 +261,8 @@ func DynamicParts(width string, height string, panelHeight string) (output strin
 		output = fmt.Sprintf("%s%dx Single Middle Hinges\n", tempOut, midHingeCount)
 	}
 
-	tempOut = output
+	tempOut = output // Update temporary buffer
 
-	//fmt.Println("2x Cables @ size (mm):", cableSize)
 	output = fmt.Sprintf("%s2x Cables @ size (mm): %f\n", tempOut, cableSize)
 
 	fmt.Println("--- DOOR END ---")

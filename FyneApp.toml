@@ -4,7 +4,7 @@ Website = "https://github.com/keybangz"
 Icon = "Icon.png"
 Name = "GDAMA Toolbox"
 ID = "com.gdamatoolbox.app"
-Version = 0.1.0
+Version = "0.1.0"
 Build = 1
 
 [LinuxAndBSD]
