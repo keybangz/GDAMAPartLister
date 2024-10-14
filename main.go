@@ -172,17 +172,16 @@ func OnPressPrint(height string, width string) func() {
 		// 	goPDF.Cell(nil, "Garage Doors & More | Sectional Door Partlist")
 		// })
 
+		// 1240 x 1754 A4 in pixels
+
 		goPDF.SetX(4)
 		goPDF.SetY(5)
 		goPDF.Cell(nil, "Garage Doors & More | Sectional Door Partlist")
-		goPDF.SetY(25)
-		goPDF.SetX(4)
-		goPDF.Cell(nil, "test 123")
 
 		// Find RGB colors and hopefully no color means transparent / nothing, otherwise set to white.
-		goPDF.SetStrokeColor(255, 0, 0)
+		goPDF.SetStrokeColor(0, 0, 0)
 		goPDF.SetLineWidth(2)
-		goPDF.SetFillColor(0, 255, 0)
+		goPDF.SetFillColor(0, 0, 0)
 
 		fDoorHeight, err := strconv.ParseFloat(height, 64)
 		if err != nil {
@@ -195,19 +194,36 @@ func OnPressPrint(height string, width string) func() {
 			fmt.Println(err.Error())
 		}
 
-		fDoorHeight = fDoorHeight / 10.0
-		fDoorWidth = fDoorWidth / 10.0
+		fDoorHeight = fDoorHeight / 15.0
+		fDoorWidth = fDoorWidth / 15.0
 
-		err = goPDF.Rectangle(100, 100, fDoorWidth, fDoorHeight, "DF", 0, 0)
+		// rec := goPDF.Rectangle(100, 100, fDoorWidth, fDoorHeight, "DF", 0, 0)
 		// Add automatic padding for spacing of document
 		// Padding might be 25 pixels? what are the constraints of an A4 document? idfk
 		// Add width and height of door 25 pixels from desired side of door diagram
 		// Part list can go underneath, How can I center the recentangle? Who fucking knows.
-		if err != nil {
-			fmt.Println(err.Error())
+
+		opt := gopdf.CellOption{
+			Align:  gopdf.Center | gopdf.Middle,
+			Border: gopdf.AllBorders,
+			Float:  gopdf.Center,
 		}
 
+		rec := &gopdf.Rect{
+			W: fDoorWidth,
+			H: fDoorHeight,
+		}
+
+		centerX := 50.0
+		// centerY := fDoorHeight - 1754
+
+		size := fmt.Sprintf("%s(h) x %s(w)", height, width)
+		goPDF.SetX(centerX)
+		goPDF.SetY(50)
+		goPDF.CellWithOption(rec, size, opt)
+
 		goPDF.WritePdf("door.pdf")
+		goPDF.Close()
 	}
 }
 
