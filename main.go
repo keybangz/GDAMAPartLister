@@ -11,6 +11,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
+	"github.com/signintech/gopdf"
 )
 
 // MINIMUM DOOR SIZE SINGLE
@@ -31,8 +32,13 @@ var wheelCount int    // +1 Panel = 2+ Wheels
 var wheelType bool    // If false, short wheels, if true, long wheels???? profit
 var midHingeType bool // If false single hinge, if true double hinge
 var midHingeCount int // Default to 9, divide door width by 1m and add extras when needed
+var goPDF *gopdf.GoPdf
 
 func main() {
+	// Handle PDF creator handles
+	goPDF = &gopdf.GoPdf{}
+	goPDF.Start(gopdf.Config{PageSize: *gopdf.PageSizeA4})
+
 	// Grab door size -> Mount Type -> Print static parts, then print dynamic parts.
 	prog := app.New()
 	mainWindow := prog.NewWindow("GDAMA Toolbox v0.1")
@@ -42,6 +48,8 @@ func main() {
 	ePanelHeight := widget.NewEntry()
 	ePanelHeight.SetText("600") // Set default panel height to 550 for averaging.
 	eOutput := widget.NewLabel("")
+	ePrint := widget.NewButton("Print", nil)
+	ePrint.Disable()
 
 	eDoorType := widget.NewRadioGroup([]string{"Standard", "Front-mount", "Low Head-room Rear Mount"}, func(value string) {
 		if value == "Standard" {
@@ -70,16 +78,20 @@ func main() {
 
 			output := fmt.Sprintf("%s\nPart List: \n%s\n%s", mountSpecs, staticParts, dynamicParts)
 			eOutput.SetText(output)
+			ePrint.Enable()
+			ePrint.OnTapped = OnPressPrint(eDoorHeight.Text, eDoorWidth.Text)
 		},
 	}
 
 	partListContent := container.NewVBox(doorPartListerForm)
-	partListOutputContent := container.NewVBox(eOutput)
+	partListOutputContent := container.NewVBox(eOutput, ePrint)
 
 	partLister := container.New(layout.NewGridLayout(1), partListContent, partListOutputContent)
 
+	scrollPartLister := container.NewVScroll(partLister)
+
 	tabs := container.NewAppTabs(
-		container.NewTabItem("Part Lister", partLister),
+		container.NewTabItem("Part Lister", scrollPartLister),
 		container.NewTabItem("Placeholder", widget.NewLabel("Placeholder")),
 		container.NewTabItem("Placeholder", widget.NewLabel("Placeholder")),
 	)
@@ -93,7 +105,7 @@ func main() {
 	// Right content aka grid 2 will show tab results (This case will be sectional door part list output.)
 	appContent := tabs
 
-	mainWindow.Resize(fyne.NewSize(800, 500)) // Resize window to a sane start size.
+	mainWindow.Resize(fyne.NewSize(800, 600)) // Resize window to a sane start size.
 	mainWindow.SetContent(appContent)         // Set the content passed through
 	mainWindow.ShowAndRun()                   // Profit
 	// prog.Run()
@@ -134,6 +146,69 @@ func StaticParts() (output string) {
 	output = fmt.Sprintf("Track Brackets\n(L + R) Flag Brackets\n(L + R) Cable Drums\nCenter Bearing Plate\nTorsion Pole")
 
 	return output
+}
+
+func OnPressPrint(height string, width string) func() {
+	return func() {
+
+		fmt.Println("Print Button Handler")
+
+		goPDF.AddPage()
+
+		err := goPDF.AddTTFFont("Arial", "./arial.ttf")
+
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+
+		err = goPDF.SetFont("Arial", "", 18)
+
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+
+		// goPDF.AddHeader(func() {
+		// 	goPDF.SetY(5)
+		// 	goPDF.Cell(nil, "Garage Doors & More | Sectional Door Partlist")
+		// })
+
+		goPDF.SetX(4)
+		goPDF.SetY(5)
+		goPDF.Cell(nil, "Garage Doors & More | Sectional Door Partlist")
+		goPDF.SetY(25)
+		goPDF.SetX(4)
+		goPDF.Cell(nil, "test 123")
+
+		// Find RGB colors and hopefully no color means transparent / nothing, otherwise set to white.
+		goPDF.SetStrokeColor(255, 0, 0)
+		goPDF.SetLineWidth(2)
+		goPDF.SetFillColor(0, 255, 0)
+
+		fDoorHeight, err := strconv.ParseFloat(height, 64)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+
+		fDoorWidth, err := strconv.ParseFloat(width, 64)
+
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+
+		fDoorHeight = fDoorHeight / 10.0
+		fDoorWidth = fDoorWidth / 10.0
+
+		err = goPDF.Rectangle(100, 100, fDoorWidth, fDoorHeight, "DF", 0, 0)
+		// Add automatic padding for spacing of document
+		// Padding might be 25 pixels? what are the constraints of an A4 document? idfk
+		// Add width and height of door 25 pixels from desired side of door diagram
+		// Part list can go underneath, How can I center the recentangle? Who fucking knows.
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+
+		goPDF.WritePdf("door.pdf")
+	}
 }
 
 // This is where shit is gonna get messy
