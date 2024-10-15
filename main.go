@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	// FIXME: Remove after console portion of app is done and rewrite accordingly
 	"fyne.io/fyne/v2"
@@ -57,12 +58,12 @@ func main() {
 
 	var currentDoor Door
 
-	eDoorType := widget.NewRadioGroup([]string{"Standard", "Front-mount", "Low Head-room Rear Mount"}, func(value string) {
-		if value == "Standard" {
+	eDoorType := widget.NewRadioGroup([]string{"Standard (STD)", "Front-mount", "Low Head-room (LHR) Rear Mount"}, func(value string) {
+		if value == "Standard (STD)" {
 			currentDoor.mountType = 1
 		} else if value == "Front-mount" {
 			currentDoor.mountType = 2
-		} else if value == "Low Head-room Rear Mount" {
+		} else if value == "Low Head-room (LHR) Rear Mount" {
 			currentDoor.mountType = 3
 		}
 	})
@@ -153,7 +154,7 @@ func GetPanelCount(doorHeight string, panelHeight string) (output string) {
 // 1) Do not change size depending on the door size
 // 2) Do not change amount depending on the door size
 func StaticParts() (output string) {
-	output = fmt.Sprintf("Track Brackets\n(L + R) Flag Brackets\n(L + R) Cable Drums\nCenter Bearing Plate\nTorsion Pole")
+	output = fmt.Sprintf("2x Track Brackets\n(L + R) Flag Brackets\n(L + R) Cable Drums\n1x Center Bearing Plate")
 
 	return output
 }
@@ -164,23 +165,65 @@ func OnPressPrint(currentDoor Door, height string, width string, panelHeight str
 	goPDF.Start(gopdf.Config{PageSize: *gopdf.PageSizeA4})
 	goPDF.AddPage()
 
-	err := goPDF.AddTTFFont("Arial", "./arial.ttf")
-
-	if err != nil {
-		fmt.Println(err.Error())
+	var fontPath string
+	var runningOS string
+	switch runtime.GOOS {
+	case "windows":
+		{
+			fontPath = "C:\\Windows\\Fonts\\arial.ttf"
+			runningOS = "windows"
+		}
+	case "darwin":
+		{
+			fontPath = "/Library/Fonts/Arial.ttf"
+			runningOS = "mac"
+		}
+	default:
+		{
+			fontPath = "/usr/share/fonts/TTF/DejaVuSans.ttf"
+			runningOS = "linux"
+		}
 	}
 
-	err = goPDF.SetFont("Arial", "", 18)
+	fmt.Println(runningOS)
 
-	if err != nil {
-		fmt.Println(err.Error())
+	var err error
+
+	if runningOS == "windows" || runningOS == "mac" {
+		err = goPDF.AddTTFFont("Arial", fontPath)
+
+		if err != nil {
+			fmt.Println("Error loading font Arial", err)
+		}
+
+		goPDF.SetFont("Arial", "", 18)
+	} else if runningOS == "linux" {
+		err = goPDF.AddTTFFont("DejaVu", fontPath)
+
+		if err != nil {
+			fmt.Println("Error loading font DejaVu Sans", err)
+		}
+
+		goPDF.SetFont("DejaVu", "", 18)
 	}
 
 	// 1240 x 1754 A4 in pixels (wrong apparently?)
 
-	goPDF.SetX(4)
-	goPDF.SetY(5)
+	tempX := 4.0
+	tempY := 5.0
+	goPDF.SetX(tempX)
+	goPDF.SetY(tempY)
 	goPDF.Cell(nil, "Garage Doors & More | Sectional Door Partlist")
+
+	goPDF.SetX(tempX)
+	goPDF.SetY(tempY + 25.0)
+	timeNow := time.Now()
+
+	currentDate := timeNow.Format("2006-01-02")
+	currentTime := timeNow.Format("15:04:05")
+
+	generated := fmt.Sprintf("Generated on %s @ %s", currentDate, currentTime)
+	goPDF.Cell(nil, generated)
 
 	// Find RGB colors and hopefully no color means transparent / nothing, otherwise set to white.
 	goPDF.SetStrokeColor(0, 0, 0)
@@ -219,11 +262,10 @@ func OnPressPrint(currentDoor Door, height string, width string, panelHeight str
 	}
 
 	startX := 50.0
-	startY := 50.0
+	startY := 60.0
 
 	size := fmt.Sprintf("%s(h) x %s(w)", height, width)
 	panels := GetPanelCount(height, panelHeight)
-	fmt.Println(panels)
 
 	goPDF.SetX(startX)
 	goPDF.SetY(startY)
@@ -291,7 +333,7 @@ func DynamicParts(currentDoor Door, width string, height string, panelHeight str
 
 	// Sort part list for standard + front mount first.
 	if currentDoor.mountType == 1 || currentDoor.mountType == 2 {
-		currentDoor.cableSize = fHeight * 2.0
+		currentDoor.cableSize = fHeight + 600.0
 		output = fmt.Sprintf("(L + R) STD Bearing Plates\n2x STD Top Hinges\n(L + R) STD Bottom Hanger\n")
 	} else if currentDoor.mountType == 3 {
 		currentDoor.cableSize = fHeight*2 + 500
@@ -300,6 +342,11 @@ func DynamicParts(currentDoor Door, width string, height string, panelHeight str
 
 	// use temporary output to store current dynamic list
 	var tempOut = output
+
+	torsionWidth := fWidth + 500.0
+	output = fmt.Sprintf("%s1x Torsion Pole - %f\n", tempOut, torsionWidth)
+
+	tempOut = output // Update temporary buffer
 
 	// Check doorsize and update accordingly
 	currentDoor.midHingeCount = 9 // set MidHinge count to default for lowest possibility account
@@ -316,7 +363,7 @@ func DynamicParts(currentDoor Door, width string, height string, panelHeight str
 
 	// For every extra panel higher than 4 panels add 2 extra wheels
 	// Four panels is anything over 3.5
-	//
+
 	// doorHeight divided by 600 default panel height is going to always return a floating point number
 	// Algorithmic will assume that anything over .5 of a divided doorHeight via 600 will mean it is the next rounded number up.
 
