@@ -3,7 +3,10 @@ package main
 import (
 	"fmt"
 	"math"
+	"os/exec"
+	"runtime"
 	"strconv"
+	"strings"
 
 	// FIXME: Remove after console portion of app is done and rewrite accordingly
 	"fyne.io/fyne/v2"
@@ -22,22 +25,23 @@ import (
 // Do we need to save some sort of door id for back reference in case they want a spreadsheet created?
 // Am I overthinking it right now? probably.
 
-// Globals
-var mountType int // Mount Type Choice in int
+// FIXME: 15/10/24 - SOFTWARE DUE FOR REFACTOR, ugly ass code.
 
-// For reference, every panel of door height should be 600mm high each, so 600 x 4 =
-// Parts
-var cableSize float64
-var wheelCount int    // +1 Panel = 2+ Wheels
-var wheelType bool    // If false, short wheels, if true, long wheels???? profit
-var midHingeType bool // If false single hinge, if true double hinge
-var midHingeCount int // Default to 9, divide door width by 1m and add extras when needed
+// // For reference, every panel of door height should be 600mm high each, so 600 x 4 =
 var goPDF *gopdf.GoPdf
+
+type Door struct {
+	mountType     int
+	cableSize     float64
+	wheelCount    int
+	wheelType     bool
+	midHingeType  bool
+	midHingeCount int
+}
 
 func main() {
 	// Handle PDF creator handles
 	goPDF = &gopdf.GoPdf{}
-	goPDF.Start(gopdf.Config{PageSize: *gopdf.PageSizeA4})
 
 	// Grab door size -> Mount Type -> Print static parts, then print dynamic parts.
 	prog := app.New()
@@ -51,13 +55,15 @@ func main() {
 	ePrint := widget.NewButton("Print", nil)
 	ePrint.Disable()
 
+	var currentDoor Door
+
 	eDoorType := widget.NewRadioGroup([]string{"Standard", "Front-mount", "Low Head-room Rear Mount"}, func(value string) {
 		if value == "Standard" {
-			mountType = 1
+			currentDoor.mountType = 1
 		} else if value == "Front-mount" {
-			mountType = 2
+			currentDoor.mountType = 2
 		} else if value == "Low Head-room Rear Mount" {
-			mountType = 3
+			currentDoor.mountType = 3
 		}
 	})
 
@@ -74,12 +80,14 @@ func main() {
 			panels := GetPanelCount(eDoorHeight.Text, ePanelHeight.Text)
 			mountSpecs := fmt.Sprintf("Mount Specifications:\nDoor Height: %s Door Width: %s Panel Height: %s\nMount Type: %s\n%s\n", eDoorHeight.Text, eDoorWidth.Text, ePanelHeight.Text, eDoorType.Selected, panels)
 			staticParts := StaticParts()
-			dynamicParts := DynamicParts(eDoorWidth.Text, eDoorHeight.Text, ePanelHeight.Text)
+			dynamicParts := DynamicParts(currentDoor, eDoorWidth.Text, eDoorHeight.Text, ePanelHeight.Text)
 
 			output := fmt.Sprintf("%s\nPart List: \n%s\n%s", mountSpecs, staticParts, dynamicParts)
 			eOutput.SetText(output)
 			ePrint.Enable()
-			ePrint.OnTapped = OnPressPrint(eDoorHeight.Text, eDoorWidth.Text)
+			ePrint.OnTapped = func() {
+				OnPressPrint(currentDoor, eDoorHeight.Text, eDoorWidth.Text, ePanelHeight.Text)
+			}
 		},
 	}
 
@@ -121,6 +129,8 @@ func GetPanelCount(doorHeight string, panelHeight string) (output string) {
 	fHeight, err := strconv.ParseFloat(doorHeight, 64)
 	fPanelHeight, err := strconv.ParseFloat(panelHeight, 64)
 
+	fmt.Println(fPanelHeight, fHeight)
+
 	// cheeky error handling by crashing the program lol
 	if err != nil {
 		panic(err)
@@ -148,89 +158,127 @@ func StaticParts() (output string) {
 	return output
 }
 
-func OnPressPrint(height string, width string) func() {
-	return func() {
+func OnPressPrint(currentDoor Door, height string, width string, panelHeight string) {
+	fmt.Println("Print Button Handler")
 
-		fmt.Println("Print Button Handler")
+	goPDF.Start(gopdf.Config{PageSize: *gopdf.PageSizeA4})
+	goPDF.AddPage()
 
-		goPDF.AddPage()
+	err := goPDF.AddTTFFont("Arial", "./arial.ttf")
 
-		err := goPDF.AddTTFFont("Arial", "./arial.ttf")
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 
-		if err != nil {
-			fmt.Println(err.Error())
-		}
+	err = goPDF.SetFont("Arial", "", 18)
 
-		err = goPDF.SetFont("Arial", "", 18)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 
-		if err != nil {
-			fmt.Println(err.Error())
-		}
+	// 1240 x 1754 A4 in pixels (wrong apparently?)
 
-		// goPDF.AddHeader(func() {
-		// 	goPDF.SetY(5)
-		// 	goPDF.Cell(nil, "Garage Doors & More | Sectional Door Partlist")
-		// })
+	goPDF.SetX(4)
+	goPDF.SetY(5)
+	goPDF.Cell(nil, "Garage Doors & More | Sectional Door Partlist")
 
-		// 1240 x 1754 A4 in pixels
+	// Find RGB colors and hopefully no color means transparent / nothing, otherwise set to white.
+	goPDF.SetStrokeColor(0, 0, 0)
+	goPDF.SetLineWidth(2)
+	goPDF.SetFillColor(0, 0, 0)
 
-		goPDF.SetX(4)
-		goPDF.SetY(5)
-		goPDF.Cell(nil, "Garage Doors & More | Sectional Door Partlist")
+	fDoorHeight, err := strconv.ParseFloat(height, 64)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 
-		// Find RGB colors and hopefully no color means transparent / nothing, otherwise set to white.
-		goPDF.SetStrokeColor(0, 0, 0)
-		goPDF.SetLineWidth(2)
-		goPDF.SetFillColor(0, 0, 0)
+	fDoorWidth, err := strconv.ParseFloat(width, 64)
 
-		fDoorHeight, err := strconv.ParseFloat(height, 64)
-		if err != nil {
-			fmt.Println(err.Error())
-		}
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 
-		fDoorWidth, err := strconv.ParseFloat(width, 64)
+	fDoorHeight = fDoorHeight / 15.0
+	fDoorWidth = fDoorWidth / 15.0
 
-		if err != nil {
-			fmt.Println(err.Error())
-		}
+	// rec := goPDF.Rectangle(100, 100, fDoorWidth, fDoorHeight, "DF", 0, 0)
+	// Add automatic padding for spacing of document
+	// Padding might be 25 pixels? what are the constraints of an A4 document? idfk
+	// Add width and height of door 25 pixels from desired side of door diagram
+	// Part list can go underneath, How can I center the recentangle? Who fucking knows.
 
-		fDoorHeight = fDoorHeight / 15.0
-		fDoorWidth = fDoorWidth / 15.0
+	opt := gopdf.CellOption{
+		Align:  gopdf.Center | gopdf.Middle,
+		Border: gopdf.AllBorders,
+		Float:  gopdf.Center,
+	}
 
-		// rec := goPDF.Rectangle(100, 100, fDoorWidth, fDoorHeight, "DF", 0, 0)
-		// Add automatic padding for spacing of document
-		// Padding might be 25 pixels? what are the constraints of an A4 document? idfk
-		// Add width and height of door 25 pixels from desired side of door diagram
-		// Part list can go underneath, How can I center the recentangle? Who fucking knows.
+	rec := &gopdf.Rect{
+		W: fDoorWidth,
+		H: fDoorHeight,
+	}
 
-		opt := gopdf.CellOption{
-			Align:  gopdf.Center | gopdf.Middle,
-			Border: gopdf.AllBorders,
-			Float:  gopdf.Center,
-		}
+	startX := 50.0
+	startY := 50.0
 
-		rec := &gopdf.Rect{
-			W: fDoorWidth,
-			H: fDoorHeight,
-		}
+	size := fmt.Sprintf("%s(h) x %s(w)", height, width)
+	panels := GetPanelCount(height, panelHeight)
+	fmt.Println(panels)
 
-		centerX := 50.0
-		// centerY := fDoorHeight - 1754
+	goPDF.SetX(startX)
+	goPDF.SetY(startY)
+	goPDF.Cell(nil, panels)
 
-		size := fmt.Sprintf("%s(h) x %s(w)", height, width)
-		goPDF.SetX(centerX)
-		goPDF.SetY(50)
-		goPDF.CellWithOption(rec, size, opt)
+	goPDF.SetX(startX)
+	goPDF.SetY(startY + 25)
+	goPDF.CellWithOption(rec, size, opt)
 
-		goPDF.WritePdf("door.pdf")
-		goPDF.Close()
+	// Part List, this is such a shitty way to do new lines its insane
+	goPDF.SetX(startX)
+	newY := rec.H + startY + 50
+	oldY := newY
+	goPDF.SetY(newY)
+
+	staticParts := StaticParts()
+	segments := strings.Split(staticParts, "\n")
+
+	// FIXME: Clean up later
+	for _, segment := range segments {
+		goPDF.SetX(startX)
+		goPDF.SetY(newY)
+		goPDF.Cell(nil, segment)
+		newY = oldY + 25.0
+		oldY = newY
+	}
+
+	dynParts := DynamicParts(currentDoor, width, height, panelHeight)
+	segments = strings.Split(dynParts, "\n")
+
+	for _, segment := range segments {
+		goPDF.SetX(startX)
+		goPDF.SetY(newY)
+		goPDF.Cell(nil, segment)
+		newY = oldY + 25.0
+		oldY = newY
+	}
+
+	goPDF.WritePdf("door.pdf")
+	goPDF.Close()
+
+	switch runtime.GOOS {
+	case "windows":
+		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", "door.pdf").Start()
+	case "darwin":
+		err = exec.Command("open", "door.pdf").Start()
+	default:
+		err = exec.Command("xdg-open", "door.pdf").Start()
 	}
 }
 
 // This is where shit is gonna get messy
 // Dynamic parts like Cable size will be dependant on the global door size entered
 // Some of them are dependent on the mount type
-func DynamicParts(width string, height string, panelHeight string) (output string) {
+func DynamicParts(currentDoor Door, width string, height string, panelHeight string) (output string) {
 	// Convert to float for extra middle hinge count.
 	fHeight, err := strconv.ParseFloat(height, 64)
 	fWidth, err := strconv.ParseFloat(width, 64)
@@ -242,11 +290,11 @@ func DynamicParts(width string, height string, panelHeight string) (output strin
 	}
 
 	// Sort part list for standard + front mount first.
-	if mountType == 1 || mountType == 2 {
-		cableSize = fHeight * 2.0
+	if currentDoor.mountType == 1 || currentDoor.mountType == 2 {
+		currentDoor.cableSize = fHeight * 2.0
 		output = fmt.Sprintf("(L + R) STD Bearing Plates\n2x STD Top Hinges\n(L + R) STD Bottom Hanger\n")
-	} else if mountType == 3 {
-		cableSize = fHeight*2 + 500
+	} else if currentDoor.mountType == 3 {
+		currentDoor.cableSize = fHeight*2 + 500
 		output = fmt.Sprintf("(L + R) LHR Bearing Plates\n2x LHR Top Hinges\n(L + R) LHR Bottom Hangers\n")
 	}
 
@@ -254,11 +302,11 @@ func DynamicParts(width string, height string, panelHeight string) (output strin
 	var tempOut = output
 
 	// Check doorsize and update accordingly
-	midHingeCount = 9 // set MidHinge count to default for lowest possibility account
+	currentDoor.midHingeCount = 9 // set MidHinge count to default for lowest possibility account
 	midHingeAdd := 0
-	wheelCount = 10      // Lowest possible amount of wheels is 10???
-	wheelType = false    // Short wheels by default
-	midHingeType = false // Single middle hinges by default
+	currentDoor.wheelCount = 10      // Lowest possible amount of wheels is 10???
+	currentDoor.wheelType = false    // Short wheels by default
+	currentDoor.midHingeType = false // Single middle hinges by default
 	loopCounter := 0.0
 
 	var doorWidthMetre float64 = fWidth / 1000.0
@@ -278,7 +326,7 @@ func DynamicParts(width string, height string, panelHeight string) (output strin
 		tempPanelCount = int(i + 1)
 
 		if tempPanelCount > 4 {
-			wheelCount += 2
+			currentDoor.wheelCount += 2
 		}
 
 		// Four panel door will add three middle hinges per extra metre from 2000
@@ -309,19 +357,19 @@ func DynamicParts(width string, height string, panelHeight string) (output strin
 			if tempPanelCheck == 0 {
 				// THIS COULD BE WRONG??? BUT IT SPITS OUT DIVIDED NUMBERS THAT WORK
 				if tempPanelCount == 5 {
-					midHingeCount = 8 // add 4 to 8 to get right number for 5 panel doors
+					currentDoor.midHingeCount = 8 // add 4 to 8 to get right number for 5 panel doors
 				} else if tempPanelCount == 6 {
-					midHingeCount = 10
+					currentDoor.midHingeCount = 10
 				} else if tempPanelCount == 7 {
-					midHingeCount = 12
+					currentDoor.midHingeCount = 12
 				} else if tempPanelCount == 8 {
-					midHingeCount = 14
+					currentDoor.midHingeCount = 14
 				}
 				tempPanelCheck++
 			}
 
-			fmt.Println("Middle Hinges:", midHingeCount)
-			midHingeCount += midHingeAdd
+			fmt.Println("Middle Hinges:", currentDoor.midHingeCount)
+			currentDoor.midHingeCount += midHingeAdd
 		}
 	}
 
@@ -331,30 +379,30 @@ func DynamicParts(width string, height string, panelHeight string) (output strin
 	// If door width is higher than 4.5m then set double hinges and long wheels
 	// Here check if door size is 4.5m+ and do 4+ hinges instead of two
 	if fWidth >= 4500.0 {
-		wheelType = true    // Long Wheels
-		midHingeType = true // Double Hinge
+		currentDoor.wheelType = true    // Long Wheels
+		currentDoor.midHingeType = true // Double Hinge
 	} else if fWidth < 4500.0 {
-		wheelType = false // we dont need to do this but fuck it do it anyways
-		midHingeType = false
+		currentDoor.wheelType = false // we dont need to do this but fuck it do it anyways
+		currentDoor.midHingeType = false
 	}
 
-	if wheelType {
-		output = fmt.Sprintf("%s%dx Long Wheels\n", tempOut, wheelCount)
+	if currentDoor.wheelType {
+		output = fmt.Sprintf("%s%dx Long Wheels\n", tempOut, currentDoor.wheelCount)
 	} else {
-		output = fmt.Sprintf("%s%dx Short Wheels\n", tempOut, wheelCount)
+		output = fmt.Sprintf("%s%dx Short Wheels\n", tempOut, currentDoor.wheelCount)
 	}
 
 	tempOut = output // Update temporary buffer
 
-	if midHingeType {
-		output = fmt.Sprintf("%s%dx Double Middle Hinges\n", tempOut, midHingeCount)
+	if currentDoor.midHingeType {
+		output = fmt.Sprintf("%s%dx Double Middle Hinges\n", tempOut, currentDoor.midHingeCount)
 	} else {
-		output = fmt.Sprintf("%s%dx Single Middle Hinges\n", tempOut, midHingeCount)
+		output = fmt.Sprintf("%s%dx Single Middle Hinges\n", tempOut, currentDoor.midHingeCount)
 	}
 
 	tempOut = output // Update temporary buffer
 
-	output = fmt.Sprintf("%s2x Cables @ size (mm): %f\n", tempOut, cableSize)
+	output = fmt.Sprintf("%s2x Cables @ size (mm): %f\n", tempOut, currentDoor.cableSize)
 
 	fmt.Println("--- DOOR END ---")
 
