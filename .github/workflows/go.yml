@@ -39,7 +39,7 @@ jobs:
         field: 'Details.Version'
 
     - name: Pass Fyne Version to Release Version
-      run: echo "steps.read_toml.outputs.value" >> "${{ env.APP_VERSION }}"
+      run: echo "${{ steps.read_toml.outputs.value }}" >> "${{ env.APP_VERSION }}"
 
     - name: Create Release
       id: create_release
