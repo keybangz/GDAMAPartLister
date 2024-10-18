@@ -1,19 +1,16 @@
 # GDAMAPartLister
-Program written in Go to print out a partlist for sectional doors based on size and mount type.
+Program written in Go to print out a partlist for sectional doors based on size and mount type, and auto generates a document from it.
 
-## Example Output
-### Standard (4500 x 4500)
-![image](https://github.com/user-attachments/assets/23cecdcc-c1a2-44ce-8cca-d775581e8112)
+## Interface (First Start)
+![image](https://github.com/user-attachments/assets/bbd41d68-c178-4c4c-baf2-6305aee423bc)
 
-### Standard (2500 x 2500)
-![image](https://github.com/user-attachments/assets/169df986-389e-48e7-9bb0-0d8fcc44363c)
+## Interface (2400 x 2400 Example)
+![image](https://github.com/user-attachments/assets/edab94d8-20d6-4276-9883-d35e6c38c6f5)
 
-### Low Headroom Rear Mount (4500 x 4500)
-![image](https://github.com/user-attachments/assets/f3d90ba4-8592-4ba4-a3d3-16902e190576)
-
-### Low Headroom Rear Mount (2500 x 2500)
-![image](https://github.com/user-attachments/assets/0d544df1-2219-4022-9300-3d93c3906ccb)
+## Auto generated document example (2400 x 3000 Example)
+![image](https://github.com/user-attachments/assets/ad6a6d04-b4d9-409d-b4ac-7a8fe3c2f148)
 
 ## TODO
-- Test if wheel count and middle hinge count is accurate according to calculations
-- Add GUI for easier use
+- Add auto-building and update checker inside application via Github Actions + Releases
+- Clean up generated document with styling
+- Refactor code and create modular developer workflow for easier additions to program later down the line.
