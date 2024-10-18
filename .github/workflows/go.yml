@@ -30,7 +30,7 @@ jobs:
 
     - name: Read Fyne Version
       uses: SebRollen/toml-action@v1.2.0
-      id: app-version
+      id: read_toml
       with:
         file: 'FyneApp.toml'
         field: 'Details.Version'
