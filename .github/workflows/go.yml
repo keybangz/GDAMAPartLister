@@ -40,3 +40,6 @@ jobs:
 
     - name: Pass Fyne Version to Release Version
       run: echo "APP_VERSION=${{ steps.read_toml.outputs.value }}" >> $GITHUB_ENV
+
+    - name: Test Env variable
+      run: echo "${{ env.APP_VERSION }}"
