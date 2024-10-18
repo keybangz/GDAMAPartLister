@@ -47,6 +47,7 @@ jobs:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
         prerelease: false
         title: "${{ env.APP_VERSION }}"
-        path: "./fyne-cross/bin/windows-amd64/"
+        path: "./fyne-cross/bin/windows-amd64"
+        automatic_release_tag: latest
         files: |
           *.exe
